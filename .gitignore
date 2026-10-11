@@ -5,3 +5,7 @@ Project Charter Template.docx
 
 # Research references (papers, datasheets, downloaded pages)
 reference/
+
+# Slide decks (kept local, not committed)
+*.ppt
+*.pptx

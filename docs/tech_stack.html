@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Drone Ranger Hardware Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one technical sheet. Header, a wiring-style architecture figure, then the stack as layered rows with the charter target for each layer. */
+:root{
+  --bg:#F3F5F2; --panel:#FFFFFF; --frame:#EBF0EC; --fg:#17201A; --ink:#3B463F; --muted:#5B665F; --line:#D6DCD7;
+  --kept:#6F7B74; --new:#22784A; --new-bg:#E1F1E6; --funded:#9A5800; --funded-bg:#FBEFDC; --algo:#7A837D;
+  --font-display:"Barlow Semi Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1411; --panel:#161D19; --frame:#121915; --fg:#E2E8E3; --ink:#B9C3BC; --muted:#8C978F; --line:#2A332D;
+    --kept:#7F8B84; --new:#5CC98A; --new-bg:#15301F; --funded:#E2A04A; --funded-bg:#2E2412; --algo:#7E8781;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1411; --panel:#161D19; --frame:#121915; --fg:#E2E8E3; --ink:#B9C3BC; --muted:#8C978F; --line:#2A332D;
+  --kept:#7F8B84; --new:#5CC98A; --new-bg:#15301F; --funded:#E2A04A; --funded-bg:#2E2412; --algo:#7E8781;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
+.page{max-width:1180px;margin:0 auto;padding-inline:24px;padding-block:40px 56px;display:grid;gap:32px}
+@media (max-width:600px){.page{padding-inline:16px;padding-block:28px 40px}}
+
+header{display:grid;gap:10px}
+.eyebrow{margin:0;font:500 12px/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0;font:700 clamp(2rem,4.2vw,2.9rem)/1.02 var(--font-display);letter-spacing:-.005em;text-wrap:balance}
+.lede{margin:0;max-width:66ch;font-size:1.05rem;color:var(--ink)}
+h2{margin:0;font:700 1.6rem/1.1 var(--font-display);text-wrap:balance}
+.section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 24px}
+.section-head p{margin:0;max-width:62ch;font-size:14px;color:var(--muted)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0;padding:0;list-style:none;font-size:13.5px;color:var(--ink)}
+.legend li{display:flex;align-items:center;gap:8px}
+.sw{flex:none;width:22px;height:14px;border-radius:3px;border:1.5px solid var(--kept);background:var(--panel)}
+.sw-new{border-color:var(--new);background:var(--new-bg)}
+.sw-funded{border-style:dashed;border-color:var(--funded);background:var(--funded-bg)}
+.sw-algo{border-style:dashed;border-color:var(--algo);background:transparent}
+.sw-dot{flex:none;width:8px;height:8px;margin-inline:7px;border-radius:50%;background:var(--new)}
+
+.arch{display:grid;gap:14px}
+figure{margin:0;display:grid;gap:12px}
+.fig-scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+.fig-scroll svg{display:block;width:100%;min-width:900px;height:auto}
+figcaption{max-width:74ch;font-size:14.5px;color:var(--ink)}
+figcaption strong{font-weight:600;color:var(--fg)}
+
+/* SVG marks, styled from the page so both themes work */
+.frame{fill:var(--frame);stroke:var(--line);stroke-width:1.25}
+.n{stroke-width:1.25}
+.n-kept{fill:var(--panel);stroke:var(--kept)}
+.n-new{fill:var(--new-bg);stroke:var(--new);stroke-width:1.5}
+.n-funded{fill:var(--funded-bg);stroke:var(--funded);stroke-dasharray:5 4}
+.n-algo{fill:var(--bg);stroke:var(--algo);stroke-dasharray:3 4}
+.core{stroke-width:1.75}
+.lk{fill:none;stroke:var(--ink);stroke-width:1.5}
+.lk-new{stroke:var(--new);stroke-width:2}
+.lk-funded{stroke:var(--funded);stroke-dasharray:5 4}
+.div{stroke:var(--line);stroke-width:1}
+.ah-ink{fill:var(--ink)} .ah-new{fill:var(--new)} .ah-funded{fill:var(--funded)}
+.dot-new{fill:var(--new)} .dot-kept{fill:var(--panel);stroke:var(--kept);stroke-width:1.25}
+.tz{font:500 11px var(--font-mono);letter-spacing:.12em;fill:var(--muted)}
+.tt{font:600 14px var(--font-display);letter-spacing:.01em;fill:var(--fg)}
+.tt-lg{font:700 15.5px var(--font-display);letter-spacing:.01em;fill:var(--fg)}
+.ts{font:400 12px var(--font-body);fill:var(--muted)}
+.tr{font:400 12px var(--font-body);fill:var(--fg)}
+.tm{font:500 11px var(--font-mono);fill:var(--ink)}
+.tm-funded{fill:var(--funded)}
+
+/* Layer list */
+.stack{display:grid;gap:14px}
+.layers{margin:0;padding:0;list-style:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.layer{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) minmax(0,15rem);gap:10px 24px;align-items:start;padding:16px 20px;border-top:1px solid var(--line)}
+.layer:first-child{border-top:0}
+.layer.envelope{background:var(--frame)}
+.layer h3{margin:0;font:600 1.1rem/1.2 var(--font-display);letter-spacing:.01em}
+.layer-name p{margin:4px 0 0;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0;margin:0;padding:0;list-style:none}
+.chip{padding:4px 10px;border:1.25px solid var(--kept);border-radius:6px;background:var(--panel);font:500 13px/1.35 var(--font-body);color:var(--fg)}
+.chip.new{border-color:var(--new);background:var(--new-bg)}
+.chip.funded{border-style:dashed;border-color:var(--funded);background:var(--funded-bg)}
+.chip code{margin-left:4px;font:400 11.5px var(--font-mono);color:var(--muted)}
+.envelope-text{margin:0;min-width:0;font-size:13.5px;color:var(--ink)}
+.target{margin:0;font-size:13.5px;line-height:1.45;font-variant-numeric:tabular-nums}
+.target span{display:block;font:500 10.5px/1.7 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.layer-sep{padding:8px 20px;border-top:1px solid var(--line);background:var(--bg);font:500 10.5px/1.5 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:760px){.layer{grid-template-columns:minmax(0,1fr)}}
+
+footer{display:grid;gap:8px;max-width:80ch;font-size:13.5px;color:var(--muted)}
+footer p{margin:0}
+footer strong{font-weight:600;color:var(--ink)}
+code{font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+<main class="page">
+<header>
+  <p class="eyebrow">Drone Ranger · CS 7980 capstone · Fall 2026 · Hardware group</p>
+  <h1>Drone Ranger hardware stack</h1>
+  <p class="lede">The Spring 2026 prototype, plus what the hardware group rebuilds and adds this semester so it can fly an approved autonomous patrol over a household garden. The whole platform is about $1.5k of open parts.</p>
+</header>
+
+<section class="arch" aria-labelledby="arch-h">
+  <div class="section-head">
+    <h2 id="arch-h">How the parts connect</h2>
+    <p>Wire labels are Pixhawk 6C connectors and the protocols that run over them.</p>
+  </div>
+  <ul class="legend">
+    <li><span class="sw"></span>Carried over from the Spring 2026 prototype</li>
+    <li><span class="sw sw-new"></span>Added or rebuilt this semester (parts and wiring)</li>
+    <li><span class="sw sw-dot"></span>New setting or software in a carried-over part</li>
+    <li><span class="sw sw-funded"></span>Only if funded</li>
+    <li><span class="sw sw-algo"></span>Algorithm group, outside this charter</li>
+  </ul>
+  <figure>
+    <div class="fig-scroll">
+      <svg viewBox="0 36 1200 544" role="img" aria-label="Architecture of the Drone Ranger hardware. On the ground, QGroundControl links to the Pixhawk 6C over the SiK radio and an RC transmitter carries the kill switch. On the aircraft, GNSS, the TFmini Plus rangefinder and the rebuilt power system feed the Pixhawk, which runs PX4 with EKF2, failsafes and Mission mode. The Pixhawk talks to the Jetson Orin Nano over uXRCE-DDS on a new FTDI link, and the Jetson passes depth and TF from the OAK-D Lite to the algorithm group.">
+        <defs>
+          <marker id="ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="ah-ink" d="M0,0 L10,5 L0,10 Z"/></marker>
+          <marker id="ah-new" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="ah-new" d="M0,0 L10,5 L0,10 Z"/></marker>
+          <marker id="ah-funded" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="ah-funded" d="M0,0 L10,5 L0,10 Z"/></marker>
+        </defs>
+
+        <!-- zones -->
+        <text class="tz" x="16" y="80">GROUND STATION</text>
+        <rect class="frame" x="296" y="52" width="620" height="512" rx="14"/>
+        <text class="tz" x="320" y="80">AIRCRAFT · HOLYBRO X500 V2 · 4S LIPO</text>
+        <text class="tz" x="980" y="204">ALGORITHM GROUP</text>
+
+        <!-- ground station -->
+        <rect class="n n-funded" x="16" y="96" width="220" height="60" rx="8"/>
+        <text class="tt" x="32" y="121">RTK base station</text>
+        <text class="ts" x="32" y="141">H-RTK F9P · if funded</text>
+        <line class="lk lk-funded" x1="126" y1="156" x2="126" y2="216" marker-end="url(#ah-funded)"/>
+        <text class="tm tm-funded" x="134" y="190">USB</text>
+
+        <rect class="n n-kept" x="16" y="216" width="220" height="88" rx="8"/>
+        <text class="tt" x="32" y="242">QGroundControl</text>
+        <text class="ts" x="32" y="261">laptop + SiK ground radio</text>
+        <text class="ts" x="32" y="279">plans missions, loads params</text>
+
+        <rect class="n n-new" x="16" y="322" width="220" height="52" rx="8"/>
+        <text class="tt" x="32" y="343">RC transmitter</text>
+        <text class="ts" x="32" y="362">kill switch, manual takeover</text>
+
+        <!-- ground to air links -->
+        <line class="lk" x1="236" y1="248" x2="320" y2="248" marker-start="url(#ah-ink)" marker-end="url(#ah-ink)"/>
+        <text class="tm" x="266" y="240" text-anchor="middle">MAVLink</text>
+        <text class="tm tm-funded" x="266" y="265" text-anchor="middle">+ RTCM</text>
+        <line class="lk lk-new" x1="236" y1="348" x2="320" y2="348" marker-end="url(#ah-new)"/>
+        <text class="tm" x="266" y="340" text-anchor="middle">RC link</text>
+
+        <!-- aircraft: left column -->
+        <rect class="n n-new" x="320" y="96" width="100" height="60" rx="8"/>
+        <text class="tt" x="370" y="121" text-anchor="middle">Remote ID</text>
+        <text class="ts" x="370" y="141" text-anchor="middle">broadcast</text>
+
+        <rect class="n n-kept" x="320" y="226" width="100" height="44" rx="8"/>
+        <text class="tt" x="370" y="253" text-anchor="middle">SiK radio</text>
+        <line class="lk" x1="420" y1="248" x2="480" y2="248" marker-start="url(#ah-ink)" marker-end="url(#ah-ink)"/>
+        <text class="tm" x="450" y="240" text-anchor="middle">TELEM1</text>
+
+        <rect class="n n-new" x="320" y="326" width="100" height="44" rx="8"/>
+        <text class="tt" x="370" y="353" text-anchor="middle">RC receiver</text>
+        <line class="lk lk-new" x1="420" y1="348" x2="480" y2="348" marker-end="url(#ah-new)"/>
+        <text class="tm" x="450" y="340" text-anchor="middle">RC IN</text>
+
+        <!-- aircraft: GNSS + Pixhawk -->
+        <rect class="n n-new" x="510" y="96" width="140" height="60" rx="8"/>
+        <text class="tt" x="524" y="121">GNSS + compass</text>
+        <text class="ts" x="524" y="141">M10 on a new mast</text>
+        <line class="lk lk-funded" x1="650" y1="126" x2="660" y2="126"/>
+        <rect class="n n-funded" x="660" y="110" width="68" height="32" rx="16"/>
+        <text class="tm tm-funded" x="694" y="130" text-anchor="middle">RTK rover</text>
+        <line class="lk" x1="580" y1="156" x2="580" y2="216" marker-end="url(#ah-ink)"/>
+        <text class="tm" x="588" y="190">GPS1</text>
+
+        <rect class="n n-kept core" x="480" y="216" width="192" height="184" rx="10"/>
+        <text class="tt-lg" x="496" y="243">Pixhawk 6C</text>
+        <text class="ts" x="496" y="261">PX4 Autopilot</text>
+        <line class="div" x1="496" y1="273" x2="656" y2="273"/>
+        <circle class="dot-new" cx="500" cy="289" r="3.5"/><text class="tr" x="510" y="293">EKF2 sensor fusion</text>
+        <circle class="dot-new" cx="500" cy="309" r="3.5"/><text class="tr" x="510" y="313">Failsafes + geofence</text>
+        <circle class="dot-new" cx="500" cy="329" r="3.5"/><text class="tr" x="510" y="333">Mission-mode patrol</text>
+        <circle class="dot-new" cx="500" cy="349" r="3.5"/><text class="tr" x="510" y="353">Fixed port map</text>
+        <circle class="dot-new" cx="500" cy="369" r="3.5"/><text class="tr" x="510" y="373">Versioned param file</text>
+
+        <!-- aircraft: camera + Jetson -->
+        <rect class="n n-kept" x="744" y="96" width="156" height="60" rx="8"/>
+        <text class="tt" x="758" y="121">OAK-D Lite</text>
+        <text class="ts" x="758" y="141">stereo depth camera</text>
+        <line class="lk" x1="822" y1="156" x2="822" y2="216" marker-end="url(#ah-ink)"/>
+        <text class="tm" x="830" y="190">USB3</text>
+
+        <rect class="n n-kept core" x="744" y="216" width="156" height="184" rx="10"/>
+        <text class="tt-lg" x="758" y="243">Jetson Orin Nano</text>
+        <text class="ts" x="758" y="261">8 GB · Ubuntu 22.04</text>
+        <line class="div" x1="758" y1="273" x2="886" y2="273"/>
+        <circle class="dot-kept" cx="762" cy="289" r="3"/><text class="tr" x="772" y="293">ROS 2 Humble</text>
+        <circle class="dot-kept" cx="762" cy="309" r="3"/><text class="tr" x="772" y="313">XRCE-DDS agent</text>
+        <circle class="dot-kept" cx="762" cy="329" r="3"/><text class="tr" x="772" y="333">depthai-ros</text>
+        <circle class="dot-new" cx="762" cy="349" r="3.5"/><text class="tr" x="772" y="353">TF + depth topics</text>
+        <circle class="dot-new" cx="762" cy="369" r="3.5"/><text class="tr" x="772" y="373">One-command launch</text>
+
+        <line class="lk lk-new" x1="672" y1="300" x2="744" y2="300" marker-start="url(#ah-new)" marker-end="url(#ah-new)"/>
+        <text class="tm" x="708" y="292" text-anchor="middle">uXRCE-DDS</text>
+        <text class="tm" x="708" y="316" text-anchor="middle">TELEM2</text>
+        <text class="tm" x="708" y="330" text-anchor="middle">FTDI</text>
+
+        <!-- aircraft: bottom row -->
+        <rect class="n n-new" x="480" y="460" width="116" height="80" rx="8"/>
+        <text class="tt" x="494" y="485">TFmini Plus</text>
+        <text class="ts" x="494" y="504">downward LiDAR</text>
+        <text class="ts" x="494" y="522">fused in EKF2</text>
+        <line class="lk lk-new" x1="538" y1="460" x2="538" y2="400" marker-end="url(#ah-new)"/>
+        <text class="tm" x="546" y="434">TELEM3</text>
+
+        <rect class="n n-new" x="620" y="460" width="280" height="80" rx="8"/>
+        <text class="tt" x="636" y="485">Power distribution</text>
+        <text class="ts" x="636" y="504">4S LiPo · fused · insulated</text>
+        <text class="ts" x="636" y="522">protected 12 V BEC for the Jetson</text>
+        <line class="lk lk-new" x1="650" y1="460" x2="650" y2="400" marker-end="url(#ah-new)"/>
+        <text class="tm" x="658" y="434">POWER1</text>
+        <line class="lk lk-new" x1="822" y1="460" x2="822" y2="400" marker-end="url(#ah-new)"/>
+        <text class="tm" x="830" y="434">12 V</text>
+
+        <!-- algorithm group -->
+        <rect class="n n-algo" x="980" y="216" width="204" height="184" rx="10"/>
+        <text class="tt-lg" x="996" y="243">Autonomy algorithms</text>
+        <text class="ts" x="996" y="261">not in this charter</text>
+        <line class="div" x1="996" y1="273" x2="1168" y2="273"/>
+        <text class="tr" x="996" y="293">Path planning</text>
+        <text class="tr" x="996" y="313">Mapping</text>
+        <text class="tr" x="996" y="333">Obstacle avoidance</text>
+        <line class="lk lk-new" x1="900" y1="300" x2="980" y2="300" marker-end="url(#ah-new)"/>
+        <text class="tm" x="950" y="278" text-anchor="middle">depth</text>
+        <text class="tm" x="950" y="292" text-anchor="middle">+ TF</text>
+        <text class="tm" x="950" y="318" text-anchor="middle">handover</text>
+      </svg>
+    </div>
+    <figcaption><strong>How the garden patrol (O2) flies:</strong> QGroundControl uploads the mission over the SiK radio, and PX4 flies it in Mission mode on the Pixhawk. The Jetson stays out of the outdoor control loop. It bridges PX4 to ROS 2 over uXRCE-DDS and hands depth and TF to the algorithm group. The RC kill switch acts through the Pixhawk, independent of the Jetson. If RTK is funded, QGroundControl relays the base station's RTCM corrections over the same radio.</figcaption>
+  </figure>
+</section>
+<section class="stack" aria-labelledby="stack-h">
+  <div class="section-head">
+    <h2 id="stack-h">Layer by layer</h2>
+    <p>Each layer depends on the ones below it. The right column is the charter metric that shows the layer works.</p>
+  </div>
+  <ol class="layers">
+    <li class="layer envelope">
+      <div class="layer-name"><h3>Operating envelope</h3><p>Rules every outdoor flight runs inside.</p></div>
+      <p class="envelope-text">Daylight · visual line of sight · low altitude · geofence inside the property line · NU UAS Review Board approval · FAA Part 107 pilot and Remote ID · written homeowner permission · CA Civil Code §1708.8 privacy</p>
+      <p class="target"><span>Gate</span>Approved before the first outdoor flight</p>
+    </li>
+    <li class="layer">
+      <div class="layer-name"><h3>Missions</h3><p>What the drone flies this semester.</p></div>
+      <ul class="chips">
+        <li class="chip new">O1 · manual / Position mode</li>
+        <li class="chip new">O2 · PX4 Mission-mode patrol</li>
+        <li class="chip">QGroundControl mission planning</li>
+      </ul>
+      <p class="target"><span>Target</span>≥ 1 garden loop (≥ 4 waypoints + return) with no pilot takeover</p>
+    </li>
+    <li class="layer">
+      <div class="layer-name"><h3>Safety</h3><p>Stops the drone or brings it home when something fails.</p></div>
+      <ul class="chips">
+        <li class="chip new">RC kill switch</li>
+        <li class="chip new">Geofence inside the lot line</li>
+        <li class="chip new">Return to launch</li>
+        <li class="chip new">Battery failsafe</li>
+        <li class="chip new">Link-loss failsafe</li>
+      </ul>
+      <p class="target"><span>Target</span>100% of failsafes verified</p>
+    </li>
+    <li class="layer">
+      <div class="layer-name"><h3>State estimation</h3><p>Where the drone thinks it is.</p></div>
+      <ul class="chips">
+        <li class="chip new">EKF2 sensor-fusion setup</li>
+        <li class="chip">IMU + barometer</li>
+        <li class="chip new">GNSS + compass on a mast</li>
+        <li class="chip new">TFmini Plus rangefinder</li>
+        <li class="chip funded">RTK GNSS <code>H-RTK F9P</code></li>
+      </ul>
+      <p class="target"><span>Target</span>Hover altitude RMSE ≤ 0.15 m (Spring: up to 0.5 m). Waypoint error measured against surveyed markers, ≤ 0.3 m with RTK.</p>
+    </li>
+    <li class="layer">
+      <div class="layer-name"><h3>Flight control and links</h3><p>Flies the aircraft and talks to the ground and the Jetson.</p></div>
+      <ul class="chips">
+        <li class="chip">Pixhawk 6C</li>
+        <li class="chip">PX4 Autopilot</li>
+        <li class="chip new">Fixed port map <code>TELEM1 radio · TELEM2 XRCE · TELEM3 TFmini</code></li>
+        <li class="chip new">FTDI serial link <code>921600 baud</code></li>
+        <li class="chip new">Versioned parameter file</li>
+        <li class="chip">SiK radio ↔ QGroundControl</li>
+      </ul>
+      <p class="target"><span>Target</span>0 link drops</p>
+    </li>
+    <li class="layer">
+      <div class="layer-name"><h3>Companion and perception</h3><p>Onboard computer and depth camera, handed to the algorithm group.</p></div>
+      <ul class="chips">
+        <li class="chip">Jetson Orin Nano 8 GB</li>
+        <li class="chip">Ubuntu 22.04 · ROS 2 Humble</li>
+        <li class="chip">Micro XRCE-DDS Agent</li>
+        <li class="chip">OAK-D Lite + depthai-ros</li>
+        <li class="chip new">Documented depth + TF interface</li>
+        <li class="chip new">One-command launch</li>
+      </ul>
+      <p class="target"><span>Target</span>Interface documented and handed over</p>
+    </li>
+    <li class="layer">
+      <div class="layer-name"><h3>Airframe and power</h3><p>What everything is mounted on and powered from.</p></div>
+      <ul class="chips">
+        <li class="chip">Holybro X500 V2</li>
+        <li class="chip">4S LiPo</li>
+        <li class="chip new">Fused, insulated power distribution</li>
+        <li class="chip new">Protected 12 V BEC for the Jetson</li>
+        <li class="chip new">Wiring diagram + bill of materials</li>
+      </ul>
+      <p class="target"><span>Target</span>0 electrical incidents · ≥ 10 min usable flight</p>
+    </li>
+    <li class="layer-sep">Off the aircraft</li>
+    <li class="layer">
+      <div class="layer-name"><h3>Test toolchain</h3><p>Rehearse before each flight, analyze after.</p></div>
+      <ul class="chips">
+        <li class="chip new">PX4 SITL + Gazebo <code>gz_x500_depth</code></li>
+        <li class="chip new">ULog → Flight Review + analysis scripts</li>
+        <li class="chip new">Pre-flight checklists</li>
+      </ul>
+      <p class="target"><span>Target</span>Every mission passes in SITL before it flies</p>
+    </li>
+  </ol>
+</section>
+
+<footer>
+  <p><strong>Not in this stack</strong> (charter, Outside of scope): obstacle avoidance, mapping and path planning (algorithm group) · ROS 2 offboard control outdoors · RL / Isaac Sim · custom flight-controller firmware · multi-drone operation · docking and charging · payloads.</p>
+  <p><strong>Sources:</strong> Project Charter – Drone Ranger Hardware (Sept 2026). Port assignments, the power layout and software versions come from the repository README and the planning brief (<code>docs/proposal_summary.md</code>).</p>
+</footer>
+</main>
+</body>
+</html>
