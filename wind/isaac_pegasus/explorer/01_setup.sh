@@ -1,11 +1,13 @@
 #!/bin/bash -l
 # One-time setup on Explorer: images, PX4 v1.14.3 build, Pegasus v5.1.0 and Python packages.
-# Run it on a CPU compute node (pulls and the PX4 build are heavy), e.g.
+# Run it on a CPU compute node (pulls and the PX4 build are heavy):
+#   bash ~/DroneRanger_hardware/wind/isaac_pegasus/explorer/submit.sh setup      # batch job (recommended)
+# or interactively:
 #   srun --partition=short --time=02:00:00 --cpus-per-task=8 --mem=32G --pty bash
 #   bash ~/DroneRanger_hardware/wind/isaac_pegasus/explorer/01_setup.sh
 # Re-running it skips what already exists. Needs about 20 GB in $DR_ROOT.
 set -euo pipefail
-source "$(dirname "$0")/env.sh"
+source "${DR_REPO:-$HOME/DroneRanger_hardware}/wind/isaac_pegasus/explorer/env.sh"   # not $0: sbatch runs a copy
 module load explorer 2>/dev/null || echo "note: 'module load explorer' failed; internet may need the proxy"
 
 mkdir -p "$DR_ROOT"/{images,runs} "$APPTAINER_CACHEDIR" "$APPTAINER_TMPDIR" "$PYUSER" "$DR_RESULTS"

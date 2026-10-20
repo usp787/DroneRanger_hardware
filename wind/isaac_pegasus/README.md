@@ -50,17 +50,30 @@ Explorer cluster, add a wind publisher, and smoke-test it with **dummy wind**.
 
 ## Running it on Explorer
 
+Only this repository is needed on Explorer. `01_setup.sh` fetches PX4 and Pegasus itself, and the git-ignored
+`reference/` library stays on the laptop.
+
 ```bash
-# 0. on Explorer: get this repo into $HOME/DroneRanger_hardware (or set DR_REPO in env.sh)
-# 1. one-time setup on a CPU node (about 20 GB in /scratch/$USER/droneranger_wind)
-srun --partition=short --time=02:00:00 --cpus-per-task=8 --mem=32G --pty bash
-bash ~/DroneRanger_hardware/wind/isaac_pegasus/explorer/01_setup.sh
-exit
-# 2. stage A+B on a GPU node; read the .out file in ~/droneranger_runs
-bash ~/DroneRanger_hardware/wind/isaac_pegasus/explorer/submit.sh check
+ssh <username>@login.explorer.northeastern.edu
+# 0. get the repo (public, so no GitHub login needed); later updates: cd ~/DroneRanger_hardware && git pull
+git clone https://github.com/usp787/DroneRanger_hardware.git ~/DroneRanger_hardware
+S=~/DroneRanger_hardware/wind/isaac_pegasus/explorer
+# 1. one-time setup as a CPU batch job (about 20 GB in /scratch/$USER/droneranger_wind, up to 2 h)
+bash $S/submit.sh setup
+squeue -u $USER                                   # wait until it has finished
+tail -20 ~/droneranger_runs/dr-setup-*.out        # should end with "setup done"
+# 2. stage A+B on an RTX GPU in `sharing`
+bash $S/submit.sh check
+tail -40 ~/droneranger_runs/dr-isaac-check-*.out  # look for the driver line and ISAAC_PEGASUS_OK
 # 3. stage C, the smoke test with the dummy wind profile
-bash ~/DroneRanger_hardware/wind/isaac_pegasus/explorer/submit.sh smoke
+bash $S/submit.sh smoke
+tail -30 ~/droneranger_runs/dr-wind-smoke-*.out   # PASS/FAIL table; logs in ~/droneranger_runs/smoke_<jobid>/
 ```
+
+If the L40S queue is long, pick another RTX type for one submission: `DR_GRES=gpu:a6000:1 bash $S/submit.sh check`. The
+alternatives are `gpu:l40:1`, `gpu:a5000:1` and `gpu:rtx6000:1`. Do not use plain `gpu:1`: `sharing` also holds V100, A100,
+H100, H200 and AMD MI50 cards, which cannot run Isaac Sim. To copy results to the laptop:
+`scp -r <username>@login.explorer.northeastern.edu:~/droneranger_runs .`
 
 **Expected outputs:**
 - Stage B prints `ISAAC_PEGASUS_OK`.
@@ -141,9 +154,11 @@ The offline point-mass stand-in gives 1.48 N, a 5.8° lean and a 0.37 m push. PX
 - **MAVSDK cannot arm.** `--relax-link-failsafes` already sets `NAV_RCL_ACT=0` and `NAV_DLL_ACT=0`; read the `[px4]` status texts in `fly.log`.
 - **The job hits 60 minutes.** Run `check` first so the shader cache is warm before `smoke`.
 
-## Open questions for this week
+## Decisions for this week (2026-10-20)
 
-1. **GPU access.** Is `sharing` (60-minute jobs) enough for now, or should we ask the PI (or the other team's PI) for their partition? A T4 job on `gpu` is the fallback test.
-2. **Driver and graphics stack on the RTX nodes.** Stage A answers this. If the driver is below 570.169 or the graphics libraries are missing, a Research Computing ticket is needed.
-3. **Does the other team already have an Isaac container or allocation on Explorer?** If so, reuse their image, partition and paths instead of `01_setup.sh`.
-4. **Should the wind be visible on ROS 2** for the other team (see Design choices)?
+- **GPU:** the smoke test runs in `sharing`. A failure, or a finding that more GPU hours are needed, is an
+  acceptable outcome; GPU access for later work will be negotiated with the PI.
+- **ROS 2:** this week uses our own MAVSDK + MAVLink pipeline, with no ROS 2. Working with the other team (shared
+  container, a ROS 2 wind topic) is possible future work.
+- **Still unknown until stage A runs:** the driver and graphics stack on the RTX nodes. If the driver is below
+  570.169 or the graphics libraries are missing, a Research Computing ticket is needed.
