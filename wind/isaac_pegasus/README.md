@@ -61,23 +61,23 @@ S=~/DroneRanger_hardware/wind/isaac_pegasus/explorer
 # 1. one-time setup as a CPU batch job (about 20 GB in /scratch/$USER/droneranger_wind, up to 2 h)
 bash $S/submit.sh setup
 squeue -u $USER                                   # wait until it has finished
-tail -20 ~/droneranger_runs/dr-setup-*.out        # should end with "setup done"
+tail -20 ~/DroneRanger_hardware/runs/dr-setup-*.out        # should end with "setup done"
 # 2. stage A+B on an RTX GPU in `sharing`
 bash $S/submit.sh check
-tail -40 ~/droneranger_runs/dr-isaac-check-*.out  # look for the driver line and ISAAC_PEGASUS_OK
+tail -40 ~/DroneRanger_hardware/runs/dr-isaac-check-*.out  # look for the driver line and ISAAC_PEGASUS_OK
 # 3. stage C, the smoke test with the dummy wind profile
 bash $S/submit.sh smoke
-tail -30 ~/droneranger_runs/dr-wind-smoke-*.out   # PASS/FAIL table; logs in ~/droneranger_runs/smoke_<jobid>/
+tail -30 ~/DroneRanger_hardware/runs/dr-wind-smoke-*.out   # PASS/FAIL table; logs in ~/DroneRanger_hardware/runs/smoke_<jobid>/
 ```
 
 If the L40S queue is long, pick another RTX type for one submission: `DR_GRES=gpu:a6000:1 bash $S/submit.sh check`. The
 alternatives are `gpu:l40:1`, `gpu:a5000:1` and `gpu:rtx6000:1`. Do not use plain `gpu:1`: `sharing` also holds V100, A100,
 H100, H200 and AMD MI50 cards, which cannot run Isaac Sim. To copy results to the laptop:
-`scp -r <username>@login.explorer.northeastern.edu:~/droneranger_runs .`
+`scp -r <username>@login.explorer.northeastern.edu:~/DroneRanger_hardware/runs .`
 
 **Expected outputs:**
 - Stage B prints `ISAAC_PEGASUS_OK`.
-- Stage C ends with `SMOKE TEST PASSED` and copies the logs (including PX4 `.ulg` files) to `~/droneranger_runs/smoke_<jobid>/`.
+- Stage C ends with `SMOKE TEST PASSED` and copies the logs (including PX4 `.ulg` files) to `~/DroneRanger_hardware/runs/smoke_<jobid>/`.
 
 The first Isaac start compiles shaders and can take 10 minutes or more. The caches in `isaac_cache/` make later
 starts faster. That matters because `sharing` jobs are limited to 60 minutes.

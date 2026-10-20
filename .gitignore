@@ -12,3 +12,6 @@ reference/
 
 # Python bytecode
 __pycache__/
+
+# Explorer job logs and smoke-test results (wind/isaac_pegasus/explorer/env.sh: DR_RESULTS)
+runs/

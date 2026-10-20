@@ -22,6 +22,16 @@ if [ ! -d "$PX4_DIR" ]; then
     git clone --branch "$PX4_TAG" --depth 1 --recurse-submodules --shallow-submodules \
         https://github.com/PX4/PX4-Autopilot.git "$PX4_DIR"
 fi
+# PX4's version-header step (src/lib/version/px_update_git_header.py) lists the tags of the NuttX submodule and
+# takes the highest nuttx-X.Y.Z; a shallow submodule has none, so the build fails with an IndexError. The value
+# is only a version string, so recreate the highest upstream tag name locally instead of fetching history.
+NUTTX="$PX4_DIR/platforms/nuttx/NuttX/nuttx"
+if [ -e "$NUTTX/.git" ] && ! git -C "$NUTTX" tag | grep -qE '^nuttx-[0-9]+\.[0-9]+\.[0-9]+'; then
+    NUTTX_TAG=$(git -C "$NUTTX" ls-remote --tags origin 'nuttx-*' \
+        | sed -n 's#.*refs/tags/\(nuttx-[0-9]*\.[0-9]*\.[0-9]*\)$#\1#p' | sort -V | tail -1)
+    git -C "$NUTTX" tag "${NUTTX_TAG:-nuttx-0.0.0}" HEAD
+    echo "created local NuttX tag ${NUTTX_TAG:-nuttx-0.0.0} (needed by PX4's version header)"
+fi
 if [ ! -x "$PX4_DIR/build/px4_sitl_default/bin/px4" ]; then
     # `exec`, not `run`: the image's entrypoint script expects Docker. Plain build target; the `none`
     # target would also start PX4 afterwards.

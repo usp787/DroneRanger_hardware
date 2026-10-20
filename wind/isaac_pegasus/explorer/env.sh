@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------------------------ edit
 export DR_ROOT="${DR_ROOT:-/scratch/$USER/droneranger_wind}"    # work dir; /scratch is purged monthly
 export DR_REPO="${DR_REPO:-$HOME/DroneRanger_hardware}"         # this repository on Explorer
-export DR_RESULTS="${DR_RESULTS:-$HOME/droneranger_runs}"       # small results copied out of /scratch
+export DR_RESULTS="${DR_RESULTS:-$DR_REPO/runs}"                # job logs + results (git-ignored), out of /scratch
 
 # GPU. Isaac Sim needs RT cores: on Explorer the only RTX GPUs open to students are in `sharing` (PI-shared,
 # 60 min per job, 1 GPU). The public `gpu` partition has one T4 node (RT cores, below Isaac's spec).
