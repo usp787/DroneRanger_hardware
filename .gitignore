@@ -9,3 +9,6 @@ reference/
 # Slide decks (kept local, not committed)
 *.ppt
 *.pptx
+
+# Python bytecode
+__pycache__/

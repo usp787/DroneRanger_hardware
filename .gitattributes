@@ -1,0 +1,3 @@
+# Shell and Slurm scripts run on Explorer (Linux): always check them out with LF line endings
+*.sh text eol=lf
+*.sbatch text eol=lf

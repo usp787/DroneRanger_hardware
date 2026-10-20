@@ -37,6 +37,7 @@ Accuracy targets:
 |---|---|
 | `Project Charter - Drone Ranger Hardware.docx` | Project charter (proposal) |
 | `docs/proposal_summary.md` | Planning brief: project status, root causes of the handover issues, compliance checklist, test plan, hardware budget, questions for the PI |
+| `wind/` | Sim + wind feasibility study: San Jose wind data tools, wind-replay profiles for simulators, literature review and BibTeX. Start at `wind/README.md` |
 | `reference/` | Research library (papers, datasheets, docs, regulations). **Local only, git-ignored.** Start at `reference/INDEX.md` |
 
 Planned additions as the work proceeds: wiring diagram and bill of materials, versioned PX4 parameter file,

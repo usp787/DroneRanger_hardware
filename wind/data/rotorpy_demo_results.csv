@@ -1,0 +1,6 @@
+profile,duration_s,wind_mean_ms,wind_max_ms,rmse_m,max_err_m,p95_err_m,mean_tilt_deg,max_tilt_deg,rotor_saturation_pct,mean_rotor_frac,exit
+no wind,98.000,0.000,0.000,0.024,0.038,0.036,1.768,3.918,0.000,0.776,Timeout: Simulation end time reached.
+sjc_20251130_0915_900s_5m_mil,98.000,1.065,1.504,0.033,0.064,0.056,1.930,4.292,0.000,0.776,Timeout: Simulation end time reached.
+sjc_20251205_1315_900s_5m_data,98.000,1.908,3.216,0.053,0.114,0.093,2.337,5.110,0.000,0.776,Timeout: Simulation end time reached.
+sjc_20251107_1530_900s_5m_data,98.000,3.866,5.122,0.107,0.189,0.172,4.049,8.312,0.000,0.776,Timeout: Simulation end time reached.
+sjc_20251113_0915_900s_5m_data,98.000,7.848,11.080,0.258,0.370,0.344,9.559,15.956,0.000,0.781,Timeout: Simulation end time reached.
