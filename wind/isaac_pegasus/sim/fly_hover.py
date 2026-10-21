@@ -87,6 +87,11 @@ async def fly(drone):
             await drone.param.set_param_int(name, 0)
             print(f"[fly_hover] {name} = 0")
 
+    # PX4 ends Takeoff once within NAV_MC_ALT_RAD (default 0.8 m) of the target and then holds wherever it is: with
+    # the default it held 2.2 m, below smoke_wind.py's 2.5 m wind trigger (smoke job 11291459)
+    await drone.param.set_param_float("NAV_MC_ALT_RAD", 0.1)
+    print("[fly_hover] NAV_MC_ALT_RAD = 0.1")
+
     stop = asyncio.Event()
     logger = asyncio.ensure_future(log_telemetry(drone, stop))
     await drone.action.set_takeoff_altitude(args.alt)

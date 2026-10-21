@@ -25,7 +25,7 @@ nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
 ENVF="$RUN_DIR/isaac.env"
 write_env_file "$ENVF" $(isaac_env_vars)
 LOCALF="$RUN_DIR/local.env"                     # flight script + checker: localhost only, no proxy
-write_env_file --offline "$LOCALF" $(isaac_env_vars)
+write_env_file --offline "$LOCALF" $(isaac_env_vars) PYTHONUNBUFFERED=1   # fly.log readable while the job runs
 PIDS=()
 cleanup() { for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; }
 trap cleanup EXIT

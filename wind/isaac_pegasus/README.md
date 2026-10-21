@@ -152,6 +152,9 @@ The offline point-mass stand-in gives 1.48 N, a 5.8° lean and a 0.37 m push. PX
 - **`vkCreateInstance failed` or a segmentation fault at start.** The node lacks graphics/Vulkan driver libraries, or Apptainer is older than 1.4 (which binds the ICD and OptiX files). See stage A's output.
 - **`Read-only file system` under `/isaac-sim/...`.** Add that path as another bind in `isaac_exec` (`env.sh`). Alternatively, pass `--portable-root <writable dir>` through `smoke_wind.py`; unknown arguments go to Kit.
 - **PX4 never connects.** Check `px4.log` for "Waiting for simulator to accept connection on TCP port 4560+i", and check that `isaac.log` shows the vehicle being created.
+- **The wind clock never starts (`profile_done False`).** The drone must climb past 2.5 m. PX4 ends Takeoff
+  within `NAV_MC_ALT_RAD` of the target and then holds there (default 0.8 m, so 2.2 m for a 3 m take-off), so
+  `fly_hover.py` sets it to 0.1 m.
 - **MAVSDK cannot arm.** `--relax-link-failsafes` already sets `NAV_RCL_ACT=0` and `NAV_DLL_ACT=0`; read the `[px4]` status texts in `fly.log`.
 - **`fly_hover` says mavsdk_server saw no PX4.** `mavsdk_server` opens its gRPC port only after it hears PX4,
   so this is a port mismatch: the `Onboard` line in `px4.log` (`remote port ...`) must match the `--url` port.
