@@ -42,6 +42,7 @@ class WindDrag(Drag):
         self._log = csv.writer(self._log_file) if self._log_file else None
         if self._log:
             self._log.writerow(LOG_FIELDS)
+            self._log_file.flush()
 
     @property
     def drag(self):
@@ -64,6 +65,8 @@ class WindDrag(Drag):
                                 *np.round(state.position, 4), *np.round(state.linear_velocity, 4),
                                 *np.round(state.attitude, 6), *np.round(self.wind, 4),
                                 *np.round(self._drag_force, 4), *np.round(R.apply(self._drag_force), 4)])
+            if self._step % (self._log_every * 25) == 0:   # flush ~2x per sim second: a killed run keeps its data
+                self._log_file.flush()
         self._step += 1
         return self._drag_force
 

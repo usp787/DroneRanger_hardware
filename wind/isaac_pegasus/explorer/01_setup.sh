@@ -47,9 +47,11 @@ echo "== 3/4 Pegasus $PEGASUS_TAG (used from PYTHONPATH; no 'pip install -e', wh
 echo "== 4/4 Python packages for Isaac's Python (into $PYUSER)"
 ENVF="$DR_ROOT/setup.env"
 write_env_file "$ENVF" $(isaac_env_vars)
+# mavsdk<4: v4 (2026) replaced the gRPC-based API that fly_hover.py uses (System() raises TypeError in v4).
 isaac_exec "$ENVF" /isaac-sim/python.sh -m pip install --user --no-warn-script-location \
-    pymavlink pyyaml toml mavsdk pandas
+    pymavlink pyyaml toml "mavsdk<4" pandas
 isaac_exec "$ENVF" /isaac-sim/python.sh -c \
-    "import numpy, scipy, pymavlink, yaml, toml, mavsdk, pandas; print('python packages ok')"
+    "import numpy, scipy, pymavlink, yaml, toml, mavsdk, pandas; from importlib.metadata import version; \
+print('python packages ok, mavsdk', version('mavsdk'))"
 
 echo "== setup done. Next: bash $DR_REPO/wind/isaac_pegasus/explorer/submit.sh check"

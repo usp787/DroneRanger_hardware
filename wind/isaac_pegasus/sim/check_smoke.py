@@ -25,11 +25,20 @@ def window(df, a, b):
 
 
 def run_checks(log_path):
-    df = pd.read_csv(log_path)
     checks = []
 
     def check(name, ok, detail):
         checks.append({"check": name, "pass": bool(ok), "detail": detail})
+
+    try:
+        df = pd.read_csv(log_path)
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        df = pd.DataFrame()
+    check("sim log has data", len(df) > 0,
+          f"{len(df)} rows in {log_path}" if len(df) else
+          f"{log_path} is missing or empty: the sim never logged (see isaac.log) or was killed before flushing")
+    if df.empty:
+        return checks
 
     flown = df.dropna(subset=["t_rel"])
     check("wind clock started (vehicle climbed above the trigger height)", len(flown) > 0,

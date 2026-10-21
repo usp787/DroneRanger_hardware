@@ -108,6 +108,14 @@ def test_checker_fails_without_wind(tmp_path=None):
     assert not all(c["pass"] for c in run_checks(log))
 
 
+def test_checker_reports_empty_log(tmp_path=None):
+    """Smoke run 11288256: the sim log was empty (no take-off); the checker must FAIL, not raise."""
+    log = pathlib.Path(tmp_path or tempfile.mkdtemp()) / "sim_log.csv"
+    log.write_text("")
+    checks = run_checks(log)
+    assert len(checks) == 1 and not checks[0]["pass"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -45,7 +45,12 @@ isaac_exec "$ENVF" /isaac-sim/python.sh "$SIM_DIR/fly_hover.py" --url "udpin://0
 FLY=$?
 echo "fly_hover exit $FLY"; tail -15 "$RUN_DIR/fly.log"
 
-for _ in $(seq 1 60); do kill -0 "$ISAAC_PID" 2>/dev/null || break; sleep 5; done   # let the sim exit
+if [ "$FLY" -ne 0 ]; then
+    echo "flight script failed: stopping the sim now (it would wait for a take-off that never comes)"
+    kill -INT "$ISAAC_PID" 2>/dev/null; sleep 20
+else
+    for _ in $(seq 1 60); do kill -0 "$ISAAC_PID" 2>/dev/null || break; sleep 5; done   # let the sim exit
+fi
 grep "smoke_wind" "$RUN_DIR/isaac.log" | tail -10
 
 echo "== 4/4 checks"

@@ -16,6 +16,7 @@ the summary of the report.
 | [data/](data/) | Small results: `sj_wind_summary.md` (flight-hour wind statistics), `sjc_1min_diurnal.csv`, `turbulence_validation.csv`, `rotorpy_demo_results.csv` |
 | [figures/](figures/) | `sjc_diurnal.png`, `rotorpy_demo.png` |
 | [tools/](tools/) | The scripts below |
+| [progress_10_21.md](progress_10_21.md) | Progress summary as of 2026-10-21: all results so far, Explorer job outcomes, issues and fixes, next steps |
 | [isaac_pegasus/](isaac_pegasus/) | This week's pipeline: Isaac Sim 5.1 + Pegasus 5.1 + PX4 SITL v1.14.3 on Explorer HPC, with a wind publisher (dummy-wind smoke test). Start at its README |
 | [_build/](_build/) | `wind_refs.py` (reference database), `report.src.md` (report text with `[@key]` citations), `build.py` |
 
