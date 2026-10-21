@@ -68,7 +68,12 @@ async def statustext(drone):
 
 async def main():
     drone = System()
-    await drone.connect(system_address=args.url)
+    try:   # connect() starts the local mavsdk_server and opens a gRPC channel to it; it must not hang
+        await asyncio.wait_for(drone.connect(system_address=args.url), timeout=180)
+    except asyncio.TimeoutError:
+        raise SystemExit("[fly_hover] no gRPC link to the local mavsdk_server within 180 s; if the log shows "
+                         "'HTTP proxy handshake ... 403', localhost is not in no_proxy (see explorer/env.sh)")
+    print("[fly_hover] mavsdk_server up; waiting for PX4", flush=True)
     asyncio.ensure_future(statustext(drone))
     await wait_for((s.is_connected async for s in drone.core.connection_state()), "connected", args.connect_timeout)
     await wait_for((h.is_global_position_ok and h.is_home_position_ok async for h in drone.telemetry.health()),

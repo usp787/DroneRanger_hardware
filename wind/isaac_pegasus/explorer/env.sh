@@ -32,14 +32,23 @@ export APPTAINER_CACHEDIR="$DR_ROOT/apptainer_cache"
 export APPTAINER_TMPDIR="$DR_ROOT/apptainer_tmp"
 export SIM_DIR="$DR_REPO/wind/isaac_pegasus/sim"
 
-# Write the proxy variables (set by `module load explorer`) and our own variables to an env file, so that
+# Write our variables, plus the proxy variables set by `module load explorer`, to an env file, so that
 # --cleanenv keeps host Python/conda settings out of the containers but internet access still works.
-write_env_file() {   # write_env_file <file> [KEY=VALUE ...]
+# localhost is always exempt from the proxy: MAVSDK-Python talks to its local mavsdk_server over gRPC, and gRPC
+# otherwise sends that through Explorer's proxy, which answers 403 (smoke job 11288960 hung until the time limit).
+# --offline leaves the proxy out entirely (for processes that only talk to localhost).
+write_env_file() {   # write_env_file [--offline] <file> [KEY=VALUE ...]
+    local offline=0
+    [ "${1:-}" = "--offline" ] && { offline=1; shift; }
     local f="$1"; shift
     : > "$f"
-    for v in http_proxy https_proxy ftp_proxy no_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY NO_PROXY; do
-        [ -n "${!v:-}" ] && printf '%s=%s\n' "$v" "${!v}" >> "$f"
-    done
+    if [ "$offline" -eq 0 ]; then
+        for v in http_proxy https_proxy ftp_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY; do
+            [ -n "${!v:-}" ] && printf '%s=%s\n' "$v" "${!v}" >> "$f"
+        done
+    fi
+    local np="localhost,127.0.0.1,::1${no_proxy:+,$no_proxy}"
+    printf 'no_proxy=%s\nNO_PROXY=%s\nno_grpc_proxy=%s\n' "$np" "$np" "$np" >> "$f"
     for kv in "$@"; do printf '%s\n' "$kv" >> "$f"; done
 }
 

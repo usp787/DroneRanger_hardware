@@ -15,9 +15,11 @@ This note covers the sim + wind direction, which started on 2026-10-19.
   - Isaac Sim runs headless in Apptainer.
   - Pegasus and the wind publisher apply the correct wind force.
   - PX4 SITL connects to the simulator in lockstep and reports "Ready for takeoff!".
-- **What failed, and its fix.** The first smoke test did not fly because the scripted-flight library (MAVSDK-Python)
-  shipped an incompatible v4 API. That is fixed in code (pinned to `mavsdk<4`). It now needs a setup re-run and a
-  smoke re-run.
+- **What failed, and the fixes.** Two smoke runs did not fly, and in both cases the scripted-flight script was at
+  fault, not the simulator:
+  1. MAVSDK-Python shipped an incompatible v4 API (fixed: pinned to 3.17.4).
+  2. Its local gRPC link was routed through Explorer's HTTP proxy. The script hung until the 55-minute limit; this
+     was not a GPU-time problem. It is fixed in code and needs one more smoke re-run.
 
 ## 1. Results
 
@@ -74,6 +76,8 @@ Code: [isaac_pegasus/](isaac_pegasus/). Job logs on Explorer: `~/DroneRanger_har
 | 10/20 | setup 11267760 | short | **Completed.** Local NuttX tag created, PX4 v1.14.3 built, Pegasus v5.1.0 cloned, Python packages installed (including mavsdk 4.0.6, the cause of the next failure) | 13 m |
 | 10/21 | check 11287550 | sharing (L40S, node d4042) | **`ISAAC_PEGASUS_OK`.** Isaac starts headless in 65 s. 498 physics steps = 2.00 s at 250 Hz. Drag force 2.49 N for 5 m/s wind (2.5 N expected) | 9.5 m |
 | 10/21 | smoke 11288256 | sharing (L40S) | **Partial.** PX4 SITL connected to Pegasus over TCP 4567 in lockstep: "home set", "Ready for takeoff!", 35 MB ULog. The flight script crashed at start (MAVSDK v4 API), so no take-off, no wind phase and an empty sim log | 8.5 m |
+| 10/21 | setup 11288793 | short | **Completed.** mavsdk pinned to 3.17.4 | 5 m |
+| 10/21 | smoke 11288960 | sharing (L40S) | **Timed out, not because of GPU time.** PX4 connected again ("Ready for takeoff!"). The sim ran 600 s of sim time in 1,014 s (real-time factor ≈ 0.6) and exited at its own limit, with the log saved (30,001 rows). The flight script hung: MAVSDK's local gRPC link was routed through Explorer's HTTP proxy, which answered 403 | 55 m (limit) |
 
 Offline tests (no Isaac): **8/8 pass**. They cover the drag math, the trigger and schedule, CSV replay, a closed-loop
 point-mass run through the checker (1.48 N push, 5.8° lean, 0.37 m drift, as predicted), and the empty-log case.
@@ -88,14 +92,15 @@ point-mass run through the checker (1.48 N push, 5.8° lean, 0.37 m drift, as pr
 | NGX errors | DLSS is unavailable headless | None needed | Non-blocking |
 | Driver 545.23.08 on the L40S node, below the image's minimum of 570.169 | Explorer's node driver | Headless physics works anyway | Watch: may matter for camera rendering |
 | Flight script `TypeError` at `System()` | `pip install mavsdk` pulled v4.0.6, which has a new API | Pin `mavsdk<4` in setup | **Fixed in code, needs re-run** |
-| `pandas.errors.EmptyDataError` in the checker | Consequence of the above: no flight, so the log was still in its write buffer | The log now flushes ~2× per sim second; the checker reports FAIL instead of crashing; the job stops Isaac as soon as the flight script fails | **Fixed in code, needs re-run** |
+| `pandas.errors.EmptyDataError` in the checker | Consequence of the above: no flight, so the log was still in its write buffer | The log now flushes ~2× per sim second; the checker reports FAIL instead of crashing; the job stops Isaac as soon as the flight script fails | **Fixed and verified** (log saved in smoke 11288960) |
+| Smoke job hits the 55-min limit, with repeated `HTTP proxy handshake ... 403` | MAVSDK-Python reaches its local `mavsdk_server` over gRPC; gRPC used the proxy variables passed into the container | localhost is always in `no_proxy`; the flight script and checker run without proxy variables; `connect()` times out after 180 s with a clear message | **Fixed in code, needs re-run** |
 
 ## 3. Next steps
 
-1. **Re-run the smoke test.**
-   - Commit and push, then `git pull` on Explorer.
-   - Run `bash wind/isaac_pegasus/explorer/submit.sh setup`. This takes a few minutes, because images and PX4 are already in place and it only downgrades mavsdk. The log should print `mavsdk 3.x`.
-   - Run `bash wind/isaac_pegasus/explorer/submit.sh smoke`.
+1. **Re-run the smoke test.** Commit and push, `git pull` on Explorer, then run
+   `bash wind/isaac_pegasus/explorer/submit.sh smoke`. No setup re-run is needed (mavsdk 3.17.4 is installed).
+   - Expected job length: about 2 min for Isaac start, plus ~150 s of sim time (take-off, 90 s profile, landing) at
+     ≈ 0.6× real time ≈ 4–5 min. That is about 10 min in total, well inside the 60-minute `sharing` limit.
 2. **If the smoke test fails again,** read `fly.log` (arming or take-off messages from PX4) and `px4.log`. Likely next suspects:
    - PX4 arming checks without RC (`--relax-link-failsafes` already sets `NAV_RCL_ACT` / `NAV_DLL_ACT` to 0);
    - the speed of lockstep simulation compared with the 60-minute job limit.
@@ -109,6 +114,9 @@ point-mass run through the checker (1.48 N push, 5.8° lean, 0.37 m drift, as pr
 
 - **GPU access (PI negotiation).**
   - Students reach RTX GPUs on Explorer only through `sharing`: 60 minutes, 1 GPU.
+  - The measured real-time factor is ≈ 0.6 (headless, no camera). One 15-minute San Jose wind window therefore
+    needs about 25 min of wall time plus startup. A `sharing` job fits roughly one such scenario, and at most 2 jobs
+    run at a time.
   - Longer runs, more scenarios or camera rendering would need a PI-owned partition, and possibly a newer node driver (≥ 570).
 - **Simulation fidelity.**
   - Replace Pegasus' Iris drag coefficients `[0.50, 0.30, 0.0]` with values identified for the X500.

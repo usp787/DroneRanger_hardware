@@ -21,6 +21,8 @@ nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
 
 ENVF="$RUN_DIR/isaac.env"
 write_env_file "$ENVF" $(isaac_env_vars)
+LOCALF="$RUN_DIR/local.env"                     # flight script + checker: localhost only, no proxy
+write_env_file --offline "$LOCALF" $(isaac_env_vars)
 PIDS=()
 cleanup() { for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; }
 trap cleanup EXIT
@@ -39,7 +41,7 @@ apptainer exec --cleanenv --bind "$DR_ROOT" --bind "$RUN_DIR/tmp:/tmp" \
 PIDS+=("$!")
 
 echo "== 3/4 MAVSDK flight: arm, take off to 3 m, hold until the wind profile ends, land"
-isaac_exec "$ENVF" /isaac-sim/python.sh "$SIM_DIR/fly_hover.py" --url "udpin://0.0.0.0:$((14540 + INST))" \
+isaac_exec "$LOCALF" /isaac-sim/python.sh "$SIM_DIR/fly_hover.py" --url "udpin://0.0.0.0:$((14540 + INST))" \
     --done-file "$RUN_DIR/sim_log.csv.done" --log "$RUN_DIR/px4_telemetry.csv" --relax-link-failsafes \
     > "$RUN_DIR/fly.log" 2>&1
 FLY=$?
@@ -54,7 +56,7 @@ fi
 grep "smoke_wind" "$RUN_DIR/isaac.log" | tail -10
 
 echo "== 4/4 checks"
-isaac_exec "$ENVF" /isaac-sim/python.sh "$SIM_DIR/check_smoke.py" "$RUN_DIR/sim_log.csv"
+isaac_exec "$LOCALF" /isaac-sim/python.sh "$SIM_DIR/check_smoke.py" "$RUN_DIR/sim_log.csv"
 CHECK=$?
 
 OUT="$DR_RESULTS/smoke_$JOB"
