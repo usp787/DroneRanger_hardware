@@ -119,7 +119,8 @@ The offline point-mass stand-in gives 1.48 N, a 5.8° lean and a 0.37 m push. PX
   (`omni.isaac.core`, `omni.isaac.dynamic_control`).
 - **PX4 runs in its own container** (`px4_autolaunch = False`) with a job-specific instance number. A shared
   8-GPU node may host another user's PX4, and PX4 hard-codes `/tmp` lock files and fixed base ports. Each job
-  therefore gets a private `/tmp` and ports 4560+i / 14540+i.
+  therefore gets a private `/tmp` and ports 4560+i / 14540+i, with i from 1 to 8: PX4 v1.14 sends the API stream
+  of every instance above 9 to one shared UDP 14549.
 - **A local ground plane, not an NVIDIA environment.** Pegasus' environments load from NVIDIA's asset server
   (S3). Compute nodes reach the internet only through the `explorer` module's proxy.
 - **The PX4 origin is the NU Silicon Valley campus** (37.3377, −121.8898), ready for San Jose wind data.
@@ -152,7 +153,13 @@ The offline point-mass stand-in gives 1.48 N, a 5.8° lean and a 0.37 m push. PX
 - **`Read-only file system` under `/isaac-sim/...`.** Add that path as another bind in `isaac_exec` (`env.sh`). Alternatively, pass `--portable-root <writable dir>` through `smoke_wind.py`; unknown arguments go to Kit.
 - **PX4 never connects.** Check `px4.log` for "Waiting for simulator to accept connection on TCP port 4560+i", and check that `isaac.log` shows the vehicle being created.
 - **MAVSDK cannot arm.** `--relax-link-failsafes` already sets `NAV_RCL_ACT=0` and `NAV_DLL_ACT=0`; read the `[px4]` status texts in `fly.log`.
-- **The job hits 60 minutes.** Run `check` first so the shader cache is warm before `smoke`.
+- **`fly_hover` says mavsdk_server saw no PX4.** `mavsdk_server` opens its gRPC port only after it hears PX4,
+  so this is a port mismatch: the `Onboard` line in `px4.log` (`remote port ...`) must match the `--url` port.
+- **The job hits 60 minutes.** Read `fly.log` first. Smoke jobs 11288960 and 11290435 timed out because
+  `fly_hover.py` never found PX4 (instance > 9) and then hung on exit. The GPU was not too slow.
+  - With a warm cache, Isaac is ready about 1 minute in and simulates at about 0.58× real time with PX4 in lockstep (600 s in 17 min).
+  - A smoke run should take about 10 minutes.
+  - A cold first start took 9.5 minutes (stage B), so run `check` first.
 
 ## Decisions for this week (2026-10-20)
 

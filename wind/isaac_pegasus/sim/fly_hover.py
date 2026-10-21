@@ -6,7 +6,8 @@ finished (it writes <sim log>.done), then lands and disarms. PX4's own telemetry
 
     python fly_hover.py --done-file $RUN_DIR/sim_log.csv.done --log $RUN_DIR/px4_telemetry.csv
 
-Needs `pip install mavsdk` (any Python 3.9+). PX4 SITL instance 0 sends its offboard/API MAVLink stream to UDP 14540.
+Needs `pip install "mavsdk<4"` (any Python 3.9+). PX4 SITL instance i sends its offboard/API MAVLink stream to UDP
+14540+i, but PX4 v1.14 sends every instance above 9 to UDP 14549 instead.
 """
 import argparse
 import asyncio
@@ -66,14 +67,17 @@ async def statustext(drone):
         print(f"[px4] {s.type}: {s.text}")
 
 
-async def main():
-    drone = System()
-    try:   # connect() starts the local mavsdk_server and opens a gRPC channel to it; it must not hang
-        await asyncio.wait_for(drone.connect(system_address=args.url), timeout=180)
+async def fly(drone):
+    # connect() starts the local mavsdk_server and opens a gRPC channel to it. mavsdk_server opens its gRPC port only
+    # after it has seen PX4 on args.url, so this wait also covers Isaac's start (shader compile) and PX4's boot.
+    try:
+        await asyncio.wait_for(drone.connect(system_address=args.url), timeout=args.connect_timeout)
     except asyncio.TimeoutError:
-        raise SystemExit("[fly_hover] no gRPC link to the local mavsdk_server within 180 s; if the log shows "
-                         "'HTTP proxy handshake ... 403', localhost is not in no_proxy (see explorer/env.sh)")
-    print("[fly_hover] mavsdk_server up; waiting for PX4", flush=True)
+        raise SystemExit(f"[fly_hover] mavsdk_server saw no PX4 on {args.url} within {args.connect_timeout:.0f} s: "
+                         "check that the 'Onboard' line in px4.log sends to this port and that Isaac connected to "
+                         "PX4. If this log shows 'HTTP proxy handshake ... 403', localhost is not in no_proxy "
+                         "(see explorer/env.sh)")
+    print(f"[fly_hover] mavsdk_server found PX4 on {args.url}", flush=True)
     asyncio.ensure_future(statustext(drone))
     await wait_for((s.is_connected async for s in drone.core.connection_state()), "connected", args.connect_timeout)
     await wait_for((h.is_global_position_ok and h.is_home_position_ok async for h in drone.telemetry.health()),
@@ -103,6 +107,16 @@ async def main():
     await asyncio.sleep(1.0)
     logger.cancel()
     print("[fly_hover] done")
+
+
+async def main():
+    drone = System()
+    try:
+        await fly(drone)
+    finally:
+        # MAVSDK reads mavsdk_server's output in a non-daemon thread and kills the server from atexit, which Python
+        # runs only after joining that thread: without this the script never exits (smoke job 11290435).
+        drone._stop_mavsdk_server()
 
 
 if __name__ == "__main__":

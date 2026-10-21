@@ -29,7 +29,8 @@ import time
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("--px4-dir", required=True, help="PX4-Autopilot checkout built with 'make px4_sitl_default'")
 ap.add_argument("--instance", type=int, default=0,
-                help="PX4 instance / Pegasus vehicle_id: TCP 4560+i, MAVLink UDP 14540+i (unique per shared node)")
+                help="PX4 instance / Pegasus vehicle_id: TCP 4560+i, MAVLink UDP 14540+i (unique per shared node; "
+                     "keep i <= 8, PX4 v1.14 sends instances above 9 to UDP 14549)")
 ap.add_argument("--px4-autolaunch", action="store_true", help="let Pegasus start PX4 (needs PX4 runnable here)")
 ap.add_argument("--px4-model", default="gazebo-classic_iris", help="PX4_SIM_MODEL / airframe for PX4 v1.14")
 ap.add_argument("--wind", default="smoke", help="none | smoke | constant:E,N[,U] | csv:<path>")

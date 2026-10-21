@@ -14,7 +14,10 @@ module load explorer 2>/dev/null || true
 WIND="${1:-smoke}"
 JOB="${SLURM_JOB_ID:-manual}"
 RUN_DIR="$DR_ROOT/runs/smoke_$JOB"
-INST=$(( 1 + ${SLURM_JOB_ID:-0} % 50 ))   # PX4 instance: unique ports and lock files on a shared node
+# PX4 instance: unique ports and lock files on a shared node. Keep it in 1-8: PX4 v1.14 sends the API stream of every
+# instance above 9 to one shared UDP 14549 (px4-rc.mavlink), not 14540+i, so fly_hover.py never saw the vehicle
+# (smoke jobs 11288960 with instance 11 and 11290435 with instance 36). Instance 9 also lands on 14549.
+INST=$(( 1 + ${SLURM_JOB_ID:-0} % 8 ))
 mkdir -p "$RUN_DIR"/{px4_rootfs,tmp}
 echo "run dir $RUN_DIR | wind $WIND | PX4 instance $INST (TCP $((4560 + INST)), UDP $((14540 + INST)))"
 nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
